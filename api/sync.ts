@@ -1,14 +1,20 @@
-import { timingSafeEqual } from "node:crypto";
 import { Redis } from "@upstash/redis";
 import { isChoroplethMapSnapshot } from "../src/sync/snapshot.js";
 
 const CLOUD_MAPS_KEY = "jumap:sync:maps:v1";
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 
+function serverEnv() {
+  return (globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }).process?.env ?? {};
+}
+
 function redisCredentials() {
+  const env = serverEnv();
   return {
-    url: process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN,
+    url: env.KV_REST_API_URL ?? env.UPSTASH_REDIS_REST_URL,
+    token: env.KV_REST_API_TOKEN ?? env.UPSTASH_REDIS_REST_TOKEN,
   };
 }
 
@@ -21,24 +27,31 @@ function json(payload: unknown, status = 200) {
 
 function isConfigured() {
   const { url, token } = redisCredentials();
+  const env = serverEnv();
   return Boolean(
-    process.env.JUMAP_SYNC_KEY
-    && process.env.JUMAP_SYNC_KEY.length >= 24
+    env.JUMAP_SYNC_KEY
+    && env.JUMAP_SYNC_KEY.length >= 24
     && url
     && token,
   );
 }
 
 function isAuthorized(request: Request) {
-  const expected = process.env.JUMAP_SYNC_KEY;
+  const expected = serverEnv().JUMAP_SYNC_KEY;
   const authorization = request.headers.get("authorization") ?? "";
   const match = /^Bearer (.+)$/i.exec(authorization);
   if (!expected || !match) return false;
 
-  const actualBuffer = Buffer.from(match[1]);
-  const expectedBuffer = Buffer.from(expected);
-  return actualBuffer.length === expectedBuffer.length
-    && timingSafeEqual(actualBuffer, expectedBuffer);
+  const encoder = new TextEncoder();
+  const actualBytes = encoder.encode(match[1]);
+  const expectedBytes = encoder.encode(expected);
+  if (actualBytes.length !== expectedBytes.length) return false;
+
+  let difference = 0;
+  for (let index = 0; index < actualBytes.length; index += 1) {
+    difference |= actualBytes[index] ^ expectedBytes[index];
+  }
+  return difference === 0;
 }
 
 function redisClient() {

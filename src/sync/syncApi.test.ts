@@ -24,8 +24,8 @@ const sampleMaps = [{
 
 function configureSync() {
   vi.stubEnv("JUMAP_SYNC_KEY", sampleKey);
-  vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://example.upstash.io");
-  vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "test-token");
+  vi.stubEnv("KV_REST_API_URL", "https://example.upstash.io");
+  vi.stubEnv("KV_REST_API_TOKEN", "test-token");
 }
 
 afterEach(() => {
@@ -36,8 +36,8 @@ afterEach(() => {
 describe("sync API access checks", () => {
   it("reports a missing server configuration before accessing Redis", async () => {
     vi.stubEnv("JUMAP_SYNC_KEY", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
-    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
+    vi.stubEnv("KV_REST_API_URL", "");
+    vi.stubEnv("KV_REST_API_TOKEN", "");
 
     const response = await GET(new Request("https://example.test/api/sync"));
     expect(response.status).toBe(503);
