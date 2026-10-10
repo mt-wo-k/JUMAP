@@ -15,11 +15,13 @@ import type { AreaFeature, AreaValue, ChoroplethMap } from "@/domain/types";
 import { colorForValue, VALUE_MIN_COLOR } from "@/utils/color";
 import type { Feature, FeatureCollection, GeoJsonObject } from "geojson";
 import L, { type PathOptions } from "leaflet";
-import { ChevronLeft, Cloud, CloudOff, LoaderCircle, Settings2 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ChevronLeft, Cloud, CloudOff, FileUp, LoaderCircle, Settings2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { GeoJSON, MapContainer, useMap, ZoomControl } from "react-leaflet";
 import type { SyncStatus } from "@/sync/syncClient";
 import MapSetupDialog from "./MapSetupDialog";
+import CsvImportDialog from "./CsvImportDialog";
+import type { MunicipalityCsvRow } from "@/utils/municipalityCsv";
 
 type Props = {
   map: ChoroplethMap;
@@ -57,6 +59,7 @@ function valueForArea(areas: Record<string, AreaValue>, id: string) {
 }
 
 export default function MapScreen({ map, onBack, onUpdate, syncStatus, onSyncSettings }: Props) {
+  const latestAreasRef = useRef(map.areas);
   const [boundaryState, setBoundaryState] = useState<{
     key: string;
     features: AreaFeature[];
@@ -65,8 +68,13 @@ export default function MapScreen({ map, onBack, onUpdate, syncStatus, onSyncSet
   } | null>(null);
   const [selectedArea, setSelectedArea] = useState<AreaFeature | null>(null);
   const [editingSettings, setEditingSettings] = useState(false);
+  const [importingCsv, setImportingCsv] = useState(false);
   const [draftValue, setDraftValue] = useState("");
   const [draftMemo, setDraftMemo] = useState("");
+
+  useLayoutEffect(() => {
+    latestAreasRef.current = map.areas;
+  }, [map.areas]);
 
   const prefectureCodesKey = map.prefectureCodes.join(",");
   const currentBoundaryState =
@@ -148,8 +156,22 @@ export default function MapScreen({ map, onBack, onUpdate, syncStatus, onSyncSet
     [features],
   );
 
+  const areaIds = useMemo(
+    () => new Set((features ?? []).map((feature) => featureId(feature as Feature))),
+    [features],
+  );
+
+  function importCsvRows(rows: MunicipalityCsvRow[]) {
+    const areas = { ...map.areas };
+    for (const row of rows) {
+      areas[row.code] = { ...areas[row.code], value: row.value, memo: areas[row.code]?.memo ?? "" };
+    }
+    onUpdate({ ...map, areas, updatedAt: new Date().toISOString() });
+    setImportingCsv(false);
+  }
+
   function openArea(feature: AreaFeature) {
-    const saved = map.areas[featureId(feature as Feature)];
+    const saved = latestAreasRef.current[featureId(feature as Feature)];
     setDraftValue(
       saved?.value === null || saved?.value === undefined
         ? ""
@@ -191,6 +213,18 @@ export default function MapScreen({ map, onBack, onUpdate, syncStatus, onSyncSet
           </h1>
         </div>
         <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 px-2 sm:px-3"
+            aria-label="CSVから値を取り込む"
+            title="CSVから値を取り込む"
+            disabled={!features}
+            onClick={() => setImportingCsv(true)}
+          >
+            <FileUp size={16} aria-hidden="true" />
+            <span className="hidden sm:inline">CSV取込</span>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -428,6 +462,13 @@ export default function MapScreen({ map, onBack, onUpdate, syncStatus, onSyncSet
             onUpdate(updated);
             setEditingSettings(false);
           }}
+        />
+      )}
+      {importingCsv && (
+        <CsvImportDialog
+          areaIds={areaIds}
+          onClose={() => setImportingCsv(false)}
+          onImport={importCsvRows}
         />
       )}
     </main>
