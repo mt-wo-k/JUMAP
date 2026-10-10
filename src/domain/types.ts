@@ -11,6 +11,7 @@ export type ChoroplethMap = {
   prefectureCodes: string[]
   unit: string
   maxColor: string
+  invertColorScale: boolean
   areas: Record<string, AreaValue>
   createdAt: string
   updatedAt: string

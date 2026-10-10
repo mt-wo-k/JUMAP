@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blendColors, colorForValue, MAP_BACKGROUND } from './color'
+import { blendColors, colorForValue, MAP_BACKGROUND, VALUE_MIN_COLOR } from './color'
 
 describe('blendColors', () => {
   it('interpolates from the background to the selected color', () => {
@@ -20,9 +20,9 @@ describe('colorForValue', () => {
     expect(colorForValue(10, 1, 10, maxColor)).toBe(maxColor)
   })
 
-  it('maps values between the minimum and maximum to relative colors', () => {
-    expect(colorForValue(1, 1, 10, maxColor)).toBe(MAP_BACKGROUND)
-    expect(colorForValue(5.5, 1, 10, maxColor)).toBe('#92493c')
+  it('maps values from light gray at the minimum to the selected color at the maximum', () => {
+    expect(colorForValue(1, 1, 10, maxColor)).toBe(VALUE_MIN_COLOR)
+    expect(colorForValue(5.5, 1, 10, maxColor)).toBe('#e49c8f')
   })
 
   it('uses the selected endpoint when all filled areas have the same value', () => {

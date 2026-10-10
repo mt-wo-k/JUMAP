@@ -15,7 +15,7 @@ export function loadMaps(): ChoroplethMap[] {
       && Array.isArray(item?.prefectureCodes)
       && typeof item?.areas === 'object'
       && item.areas !== null,
-    )
+    ).map((map) => ({ ...map, invertColorScale: map.invertColorScale === true }))
   } catch {
     return []
   }

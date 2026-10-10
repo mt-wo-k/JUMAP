@@ -1,4 +1,5 @@
 export const MAP_BACKGROUND = '#24272d'
+export const VALUE_MIN_COLOR = '#c9cdd3'
 
 function parseHex(hex: string) {
   const normalized = hex.replace('#', '')
@@ -17,8 +18,9 @@ export function blendColors(start: string, end: string, amount: number) {
   return `#${rgb.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
 }
 
-export function colorForValue(value: number | null, min: number, max: number, maxColor: string) {
+export function colorForValue(value: number | null, min: number, max: number, maxColor: string, invertColorScale = false) {
   if (value === null || !Number.isFinite(value)) return MAP_BACKGROUND
   if (max === min) return maxColor
-  return blendColors(MAP_BACKGROUND, maxColor, (value - min) / (max - min))
+  const relativeValue = (value - min) / (max - min)
+  return blendColors(VALUE_MIN_COLOR, maxColor, invertColorScale ? 1 - relativeValue : relativeValue)
 }

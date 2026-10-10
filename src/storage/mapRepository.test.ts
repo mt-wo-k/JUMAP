@@ -20,6 +20,7 @@ const sampleMap: ChoroplethMap = {
   prefectureCodes: ['13'],
   unit: '件',
   maxColor: '#ff6b4a',
+  invertColorScale: false,
   areas: { '13101': { value: 12, memo: 'テスト' } },
   createdAt: '2026-10-10T00:00:00.000Z',
   updatedAt: '2026-10-10T00:00:00.000Z',
